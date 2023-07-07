@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <form action="../transmit/" method="post">
+        {% csrf_token %}
+        <div>
+            <input name="story" type="text">
+        </div>
+        <div>
+            <button type="submit">사연 전송</button>
+        </div>
+    </form>
+</body>
+</html>
