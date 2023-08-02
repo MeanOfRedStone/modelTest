@@ -1,6 +1,8 @@
 import time
 import torch as torch
 from django.shortcuts import render, redirect
+from rest_framework import permissions, status
+from rest_framework.decorators import api_view, permission_classes
 from transformers import BertTokenizerFast, BertModel, BertTokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 #장고 레스트 프레임워크
@@ -10,6 +12,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
+from rest_framework.response import Response
 
 
 # Create your views here.
@@ -17,10 +20,12 @@ def index(request):
 
     return render(request, 'index.html')
 
-# class storyPredict:
-def transmit(request):
-    story = request.POST['story']
 
+@api_view(['GET', 'POST'])
+@permission_classes((permissions.AllowAny,))
+def transmit(request):
+    # story = request.POST['story']
+    story = request.data['story']
     print(">>>>>>debgug , 사연 전송 확인 : ", story)
 
 
@@ -95,7 +100,7 @@ def transmit(request):
         """
 
 
-        pred = "positive"
+        pred = "pos"
 
         print(">>>>>>debug, 최종 결과- pred : ", pred)
 
@@ -189,62 +194,78 @@ def transmit(request):
             print(">>>>>>debug, negative_1(Sadness) 확률값 : ", negative_1)
             if (negative_0 > negative_1):
                 #0의 확률값이 더 클 경우(Anger)를 반환
-                pred = "Anger"
+                pred = "ang"
             else:
                 #1의 확률값이 더 클 경우(Sadness) 반환
-                pred = "Sadness"
+                pred = "sad"
         print(">>>>>>debug, 최종 결과- pred : ", pred)
 
         print("부정")
 
         ModelResult(story=story, prediction=pred).save()
 
-        #url: predict/ 로 redirect해 api바로 연결
-        return redirect('api')
+        """
+            List all code snippets, or create a new snippet.
+            """
+        if request.method == 'GET':
+            prediction = ModelResult.objects.all()
+            serializer = ModelResultSerializer(prediction, many=True)
+            return Response(serializer.data)
 
-@csrf_exempt
-def prediction_list(request):
+        elif request.method == 'POST':
+            serializer = ModelResultSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+        #url: predict/ 로 redirect해 api바로 연결
+        # return render('api')
+
+@api_view(['GET', 'POST'])
+@permission_classes((permissions.AllowAny,))
+def prediction_list(request, format=None):
     """
     List all code snippets, or create a new snippet.
     """
     if request.method == 'GET':
         prediction = ModelResult.objects.all()
         serializer = ModelResultSerializer(prediction, many=True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data)
 
     elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = ModelResultSerializer(data=data)
+        serializer = ModelResultSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
-def prediction_detail(request, pk):
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes((permissions.AllowAny,))
+def prediction_detail(request, pk, format=None):
     """
     Retrieve, update or delete a code snippet.
     """
     try:
         prediction = ModelResult.objects.get(pk=pk)
     except ModelResult.DoesNotExist:
-        return HttpResponse(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         serializer = ModelResultSerializer(prediction)
-        return JsonResponse(serializer.data)
+        return Response(serializer.data)
 
     elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = ModelResultSerializer(prediction, data=data)
+        serializer = ModelResultSerializer(prediction, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
         prediction.delete()
-        return HttpResponse(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 """
 참고용으로 남겨놓음
