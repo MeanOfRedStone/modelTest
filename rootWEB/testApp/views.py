@@ -24,10 +24,10 @@ def index(request):
 @api_view(['GET', 'POST'])
 @permission_classes((permissions.AllowAny,))
 def transmit(request):
+    ModelResult.objects.all().delete()
     # story = request.POST['story']
     story = request.data['story']
     print(">>>>>>debgug , 사연 전송 확인 : ", story)
-
 
     """
     현재 KcBERT로 긍정, 부정을 먼저 판별해준다.
@@ -107,8 +107,24 @@ def transmit(request):
         #API생성을 위해서 판별된 결과값을 ModelResult에 저장
         ModelResult(story=story, prediction=pred).save()
 
-        # url: predict/ 로 redirect해 api바로 연결
-        return redirect('api')
+        # # url: predict/ 로 redirect해 api바로 연결
+        # return redirect('api')
+        """
+                    List all code snippets, or create a new snippet.
+                    """
+        if request.method == 'GET':
+            prediction = ModelResult.objects.all()
+            serializer = ModelResultSerializer(prediction, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            print(">>>>>> debug if문 안 데이터", request.data)
+            prediction = ModelResult.objects.all()
+            print(">>>>>> debug if 문 안 prediction : ", prediction)
+            serializer = ModelResultSerializer(prediction, many=True)
+            print(">>>>>> debug if 문 안 serializer : ", serializer)
+            print(">>>>>> debug if 문 안 serializer.data", serializer.data)
+            return Response(serializer.data)
     else :
 
         """
@@ -213,11 +229,18 @@ def transmit(request):
             return Response(serializer.data)
 
         elif request.method == 'POST':
-            serializer = ModelResultSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            print(">>>>>> debug if문 안 데이터", request.data)
+            prediction = ModelResult.objects.all()
+            print(">>>>>> debug if 문 안 prediction : ", prediction)
+            serializer = ModelResultSerializer(prediction, many=True)
+            print(">>>>>> debug if 문 안 serializer : ", serializer)
+            print(">>>>>> debug if 문 안 serializer.data", serializer.data)
+            return Response(serializer.data)
+            # serializer = ModelResultSerializer(data=request.data)
+            # if serializer.is_valid():
+            #     serializer.save()
+            #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
         #url: predict/ 로 redirect해 api바로 연결
@@ -374,4 +397,4 @@ def transmit_pos(request):
     return render(request, 'transmit_pos.html')
 """
 
-ModelResult.objects.all().delete()
+# ModelResult.objects.all().delete()
